@@ -31,11 +31,7 @@ async fn main() -> Result<(), std::io::Error> {
     let s = Arc::new(Store::new().await);
 
     let cors = Cors::new()
-        .allow_origins(vec![
-            "https://nexus.speeedops.com",
-            "https://nexus-mon.vercel.app",
-            "http://localhost:3000", // Useful for local dev
-        ])
+    .allow_origin_regex(".*")
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION, header::ACCEPT])
         .allow_credentials(true);
