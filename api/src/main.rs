@@ -28,15 +28,8 @@ async fn main() -> Result<(), std::io::Error> {
     let s = Arc::new(Store::new().await);
 
     let cors = Cors::new()
-    .allow_origin("https://nexus-mon.vercel.app")
-    .allow_origin("https://nexus.speeedops.com")
-    .allow_origin("http://localhost:3000")
-    .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-    .allow_headers([
-        HeaderName::from_static("content-type"),
-        HeaderName::from_static("authorization"),
-    ])
-    .allow_credentials(true);
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_credentials(true);
 
     let app = Route::new()
     .at("/api/health", get(get_health))
