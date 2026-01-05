@@ -29,6 +29,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     let cors = Cors::new()
     .allow_origin("https://nexus-mon.vercel.app")
+    .allow_origin("https://nexus.speeedops.com")
     .allow_origin("http://localhost:3000")
     .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
     .allow_headers([
