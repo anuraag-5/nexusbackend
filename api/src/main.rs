@@ -1,5 +1,5 @@
 use dotenvy::dotenv;
-use poem::http::{HeaderName, Method};
+use poem::http::{header, Method};
 use poem::{get, listener::TcpListener, post, EndpointExt, Route, Server};
 
 use crate::route::app::{get_health, get_user, total_unique_users, total_views, total_views_per_page};
@@ -28,7 +28,14 @@ async fn main() -> Result<(), std::io::Error> {
     let s = Arc::new(Store::new().await);
 
     let cors = Cors::new()
+    .allow_origin("https://nexus.speeedops.com")
+    .allow_origin("https://nexus-mon.vercel.app")
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers([
+            header::CONTENT_TYPE, 
+            header::AUTHORIZATION, 
+            header::ACCEPT
+        ])
         .allow_credentials(true);
 
     let app = Route::new()
