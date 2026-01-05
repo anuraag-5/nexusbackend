@@ -31,7 +31,6 @@ async fn main() -> Result<(), std::io::Error> {
     let s = Arc::new(Store::new().await);
 
     let cors = Cors::new()
-    .allow_origin_regex(".*")
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION, header::ACCEPT])
         .allow_credentials(true);
