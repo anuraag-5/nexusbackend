@@ -32,7 +32,6 @@ async fn main() -> Result<(), std::io::Error> {
 
     let cors = Cors::new()
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION, header::ACCEPT])
         .allow_credentials(true);
 
     let app = Route::new()
