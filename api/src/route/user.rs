@@ -1,15 +1,16 @@
 use std::{env, sync::{Arc}};
-
+use serde_json::json;
 use crate::{
     request_input::{CreateUserInput, SignInUserInput, SignInUserInputWithGoogle, UpdateEmailInput, UpdatePasswordInput},
     request_output::{CreateUserOutput, UpdateEmailOutput},
 };
+use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, EncodingKey, Header};
 use poem::{
     handler,
     http::{header, StatusCode},
     web::{Data, Json},
-    Error, Response,
+    Error, Response, Result
 };
 use serde::{Deserialize, Serialize};
 use store::store::Store;
@@ -41,44 +42,47 @@ pub async fn create_user(
 
 #[handler]
 pub async fn sign_in_user(
-    Json(data): Json<SignInUserInput>,
+    Json(data): Json<SignInUserInput>, // Poem automatically parses JSON here
     Data(s): Data<&Arc<Store>>,
-) -> Result<Response, Error> {
+) -> Result<Json<serde_json::Value>> { // Return Json<Value> instead of raw Response
+    
     let username = data.username;
     let user_password = data.password;
 
-    let result = s.sign_in(username, user_password).await;
+    // 1. Attempt login
+    let user = s.sign_in(username, user_password)
+        .await
+        .map_err(|_| Error::from_status(StatusCode::UNAUTHORIZED))?; // Return 401 if fails
 
-    match result {
-        Ok(user) => {
-            let my_claims = Claims {
-                sub: user.id,
-                exp: 1111111111111,
-            };
-            let token = encode(
-                &Header::default(),
-                &my_claims,
-                &EncodingKey::from_secret(env::var("JWT_SECRET").map_err(|_| Error::from_string("Invalid ENV Secret", StatusCode::EXPECTATION_FAILED))?.as_ref()),
-            )
-            .map_err(|_| Error::from_status(StatusCode::INTERNAL_SERVER_ERROR))?;
-            
-            // For localhost cross-origin, use SameSite=lax or None with proper settings
-            let cookie = format!(
-                "jwt={}; HttpOnly; SameSite=Lax; Path=/; Max-Age={};",
-                token,
-                60 * 60 * 24 * 7
-            );
-            
-            let mut resp = Response::builder()
-                .status(StatusCode::OK)
-                .header(header::SET_COOKIE, cookie)
-                .header(header::CONTENT_TYPE, "application/json")
-                .body(format!("{{\"jwt\":\"{}\"}}", token));
+    // 2. Set Expiration (e.g., 24 hours from now)
+    let expiration = Utc::now()
+        .checked_add_signed(Duration::hours(24))
+        .expect("valid timestamp")
+        .timestamp();
 
-            Ok(resp)
-        }
-        Err(_) => Err(Error::from_status(StatusCode::NOT_FOUND)),
-    }
+    let my_claims = Claims {
+        sub: user.id,
+        exp: expiration as usize,
+    };
+
+    // 3. Encode Token
+    // Optimization: Load JWT_SECRET once in 'main.rs' and pass via Data<T> 
+    // instead of reading env::var on every request.
+    let secret = env::var("JWT_SECRET")
+        .map_err(|_| Error::from_string("Server Config Error", StatusCode::INTERNAL_SERVER_ERROR))?;
+
+    let token = encode(
+        &Header::default(),
+        &my_claims,
+        &EncodingKey::from_secret(secret.as_ref()),
+    ).map_err(|_| Error::from_status(StatusCode::INTERNAL_SERVER_ERROR))?;
+
+    // 4. Return JSON automatically
+    // Poem handles the Content-Type header and serialization for you
+    Ok(Json(json!({
+        "jwt": token,
+        "user_name": user.name // Optional: Send back nice-to-have info
+    })))
 }
 
 #[handler]

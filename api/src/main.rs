@@ -2,17 +2,21 @@ use dotenvy::dotenv;
 use poem::http::{header, Method};
 use poem::{get, listener::TcpListener, post, EndpointExt, Route, Server};
 
-use crate::route::app::{get_health, get_user, total_unique_users, total_views, total_views_per_page};
+use crate::route::app::{
+    get_health, get_user, total_unique_users, total_views, total_views_per_page,
+};
 use crate::route::user::{google_auth, logout_user, update_email, update_password};
-use crate::route::website::{create_website, get_avg_resp, get_avg_resp_by_region, get_details_daily, get_details_hourly, get_details_last_hour, get_uptime_percentage, get_uptime_percentage_by_region, get_users_websites, get_website_recent_status};
+use crate::route::website::{
+    create_website, get_avg_resp, get_avg_resp_by_region, get_details_daily, get_details_hourly,
+    get_details_last_hour, get_uptime_percentage, get_uptime_percentage_by_region,
+    get_users_websites, get_website_recent_status,
+};
 use crate::route::{
     app::{snippet, track},
-    user::{create_user, sign_in_user}
+    user::{create_user, sign_in_user},
 };
 use poem::middleware::{CookieJarManager, Cors};
-use std::{
-    sync::{Arc},
-};
+use std::sync::Arc;
 use store::store::Store;
 
 pub mod auth_middleware;
@@ -22,24 +26,22 @@ pub mod route;
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    
     dotenv().ok();
 
     let s = Arc::new(Store::new().await);
 
     let cors = Cors::new()
-    .allow_origin("https://nexus.speeedops.com")
-    .allow_origin("https://nexus-mon.vercel.app")
-        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        .allow_headers([
-            header::CONTENT_TYPE, 
-            header::AUTHORIZATION, 
-            header::ACCEPT
+        .allow_origins(vec![
+            "https://nexus.speeedops.com",
+            "https://nexus-mon.vercel.app",
+            "http://localhost:3000", // Useful for local dev
         ])
-        .allow_credentials(true);
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION, header::ACCEPT])
+        .allow_credentials(true);;
 
     let app = Route::new()
-    .at("/api/health", get(get_health))
+        .at("/api/health", get(get_health))
         .at("/api/website", post(create_website))
         .at("/api/website/last_hour", post(get_details_last_hour))
         .at("/api/website/hourly", post(get_details_hourly))
@@ -59,7 +61,10 @@ async fn main() -> Result<(), std::io::Error> {
         .at("/api/get_avg_resp", post(get_avg_resp))
         .at("/api/get_avg_resp_region", post(get_avg_resp_by_region))
         .at("/api/get_uptime_percentage", post(get_uptime_percentage))
-        .at("/api/get_uptime_percentage_region", post(get_uptime_percentage_by_region))
+        .at(
+            "/api/get_uptime_percentage_region",
+            post(get_uptime_percentage_by_region),
+        )
         .at("/api/update_email", post(update_email))
         .at("/api/update_password", post(update_password))
         .data(s)

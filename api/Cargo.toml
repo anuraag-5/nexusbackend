@@ -14,3 +14,4 @@ store = { path = "../store"}
 jsonwebtoken = "9"
 diesel = { version = "2.2.0", features = ["postgres", "chrono"] }
 diesel-async = { version = "0.7.0", features = ["postgres"] }
+serde_json = "1.0.148"
